@@ -1,0 +1,64 @@
+#Libraries
+from xraydb import material_mu  # Information about the xraydb library can be found at: https://xraypy.github.io/XrayDB/
+from xraydb import atomic_mass
+import numpy as np
+
+#-------------------- Input parameters - Fill out your information ----------------------
+
+# Perovskite composition - Fraction of elements/molecules by unit cell
+Cs = 0.08  
+FA = 0.8
+MA = 0.12
+Pb = 1
+Br = 0.37
+I = 2.64
+
+latt_par_a = 6.28 #Lattice parameter in Angstron (A)
+latt_par_b = 6.28 #Lattice parameter in Angstron (A)
+latt_par_c = 6.28 #Lattice parameter in Angstron (A)
+
+I0 = 5.35e9              #X-ray photon flux in Photons/s
+t = 410                  #Duration of the X-ray exposition in seconds (s)
+Irradiated_area_H = 5e-6 #Horizontal dimension of the X-ray beam in meters(m)/Incidence direction
+Irradiated_area_V = 5e-6 #Vertical dimension of the X-ray beam in meters(m)
+Incidence_angle = 90     #Incidence angle in degrees (°)
+E = 10000                #Energy of the X-ray beam  in eV
+d = 330                 # Thickness of the perovskite layer in nanometers (nm)
+
+# ---------------------------------Calculations------------------------------------------------------
+
+formula_1 = "Cs" + str(Cs) + "FA" + str(FA) + "MA" + str(MA) + "Pb" + str(Pb) + "I" + str(I) + "Br" + str(Br)
+print("Perovskite formula: ", formula_1)
+
+mass_sum_FA = atomic_mass("C")+ 5*atomic_mass("H")+ 2*atomic_mass("N")
+mass_sum_MA = atomic_mass("C")+ 6*atomic_mass("H")+ atomic_mass("N")
+mass_sum = Cs*atomic_mass("Cs") + FA*mass_sum_FA + MA*mass_sum_FA+ Pb*atomic_mass("Pb") + I*atomic_mass("I") + Br*atomic_mass("I")
+
+cell_vol = (latt_par_a*latt_par_b*latt_par_c)*1e-30 
+density = (mass_sum/(cell_vol*6.02214e23))/1e6
+A = Irradiated_area_H/np.sin(np.radians(Incidence_angle))*Irradiated_area_V #Illuminated area considering footprint
+
+# Fraction of organic atoms
+C = round(FA+MA, 2)
+N = round((2*FA)+MA, 2) 
+H = round((5*FA)+(6*MA), 2)
+
+formula = "Cs" + str(Cs) + "C" + str(C) + "N" + str(N) + "H" + str(H) + "Pb" + str(Pb) + "I" + str(I) + "Br" + str(Br)
+print("Elemental perovskite formula: ", formula)
+print("Density: ", round(density,2) , "g/cm3")
+
+mu = material_mu(formula , energy = E, density = density)
+
+It = np.exp(-(d/1e7) * mu)
+N = ((1-It)*I0)*t
+D = ((N*E*1.6021e-19)/((density*1e3)*A*(d*1e-9)))
+
+print("------------------------------------------------------")
+
+#for n in range(len(D)):
+print("Dose = ", '{:.2e}'.format(D), "Gy")
+print("Total absorbed photons: ", '{:.2e}'.format(N))
+print("Absorbed photons by area: ", '{:.2e}'.format(N/A), "Photons/m2")
+print("Transmission: ", round(It,2), "%")
+print("------------------------------------------------------")
+
